@@ -3,7 +3,7 @@ import time
 from pypylon import pylon
 from pypylon import genicam
 
-from detector import detector
+from .detectors import detector
 
 class Basler_2040_35gm(detector):
     def __init__(self):
