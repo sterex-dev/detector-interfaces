@@ -1,2 +1,3 @@
-# LAND_detector_comms
-Interfaces to detectors used at LAND.
+# LAND_comms_detectors
+
+A set of programmatic interfaces to detectors used at LAND.
