@@ -3,9 +3,12 @@ import time
 from pypylon import pylon
 from pypylon import genicam
 
-from .detectors import detector
+try:
+    from .detectors import detector
+except:
+    from detectors import detector
 
-class Basler_2040_35gm(detector):
+class Basler(detector):
     def __init__(self):
         self.exposure_start_delay_uS = 35
 
@@ -22,7 +25,7 @@ class Basler_2040_35gm(detector):
         else:
             self.camera.StartGrabbingMax(max_number_of_exposures)
 
-    def getAOI(self, w, h, x_offset, y_offset):
+    def getAOI(self):
         self.camera.Open()
         w = self.camera.Width.GetValue()
         h = self.camera.Height.GetValue()
@@ -150,8 +153,6 @@ class Basler_2040_35gm(detector):
             'transmission_delay': transmission_delay_uS/10**6
         }
         return overheads
-
-
 
     def getPacketSize(self):
         '''
@@ -376,7 +377,11 @@ class Basler_2040_35gm(detector):
         success = self.camera.GevSCFTD.SetValue(delay)
         self.camera.Close()      
         return success   
-       
+   
+class Basler_2040_35gm(Basler):
+    def __init__(self):
+        super(Basler_2040_35gm, self).__init__()
+    
 
 
 

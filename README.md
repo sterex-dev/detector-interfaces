@@ -1,4 +1,4 @@
-# interfaces-detectors
+# detector_interfaces
 
 A set of classes to interface with detectors.
 
@@ -13,8 +13,6 @@ These classes provide a way to programmatically interface with supported detecto
 To communicate with Basler cameras, the Pylon software/drivers (https://www.baslerweb.com/en/sales-support/downloads/software-downloads/) and pypylon package (https://github.com/basler/pypylon) need to be installed.
 
 # Usage
-
-Import the necessary class, 
 
 ```Python
 
@@ -32,4 +30,6 @@ res, code = camera.readNImagesFromBuffer(1)
 plt.imshow(res[0])
 plt.show()
 
-camera.disconnect()```
+camera.disconnect()
+```
+
