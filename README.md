@@ -32,3 +32,4 @@ plt.show()
 
 camera.disconnect()
 ```
+
