@@ -1,4 +1,4 @@
-# interfaces-detectors
+# detector_interfaces
 
 A set of classes to interface with detectors.
 
