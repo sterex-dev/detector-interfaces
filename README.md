@@ -14,8 +14,6 @@ To communicate with Basler cameras, the Pylon software/drivers (https://www.basl
 
 # Usage
 
-Import the necessary class, 
-
 ```Python
 
 import numpy as np
