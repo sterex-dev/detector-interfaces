@@ -32,4 +32,5 @@ res, code = camera.readNImagesFromBuffer(1)
 plt.imshow(res[0])
 plt.show()
 
-camera.disconnect()```
+camera.disconnect()
+```
