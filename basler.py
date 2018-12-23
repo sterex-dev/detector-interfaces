@@ -368,7 +368,7 @@ class Basler(detector):
         self.camera.Close()
         return success
 
-    def SetTransmissionStartDelay(self, delay):
+    def setTransmissionStartDelay(self, delay):
         '''
             Set the time between reading out and transmitting the frame to 
             the host in ticks.

@@ -1,6 +1,6 @@
 class detector(object):
     '''
-        Any new camera needs to implement the following functions.
+        Any new camera should implement the following functions.
     '''
     def __init__(self):
         pass
@@ -10,7 +10,7 @@ class detector(object):
         pass
     def expose(self, max_number_of_exposures=0):
         pass
-    def getAOI(self, w, h, x_offset, y_offset):
+    def getAOI(self):
         pass
     def getBandwidthAssigned(self):
         pass
@@ -61,7 +61,7 @@ class detector(object):
     def getThroughputCurrent(self):
         pass
     def getTransmissionStartDelay(self):
-        pass        
+        pass  
     def readNImagesFromBuffer(self, n_images, read_timeout_S, 
         time_between_read_attempts_S):
         pass
@@ -99,5 +99,5 @@ class detector(object):
         pass
     def setPixelFormat(self, pixel_format):
         pass
-    def SetTransmissionStartDelay(self, delay):
+    def setTransmissionStartDelay(self, delay):
         pass        
