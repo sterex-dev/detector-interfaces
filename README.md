@@ -1,10 +1,10 @@
 # detector_interfaces
 
-A set of classes to interface with detectors.
+A set of classes to programatically interface with detectors.
 
 # Summary
 
-These classes provide a way to programmatically interface with supported detectors. The current list of supported equipment includes:
+The current list of supported detectors includes:
 
 - Basler 2040-35gm
 
@@ -32,3 +32,4 @@ plt.show()
 
 camera.disconnect()
 ```
+
