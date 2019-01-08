@@ -12,7 +12,15 @@ class Basler(detector):
     def __init__(self):
         self.exposure_start_delay_uS = 35
 
-    def connect(self):
+    def connectBySerialNumber(self, sn):
+        tlFactory = pylon.TlFactory.GetInstance()
+        devices = tlFactory.EnumerateDevices()
+        for i, dev in enumerate(devices):
+            if dev.GetSerialNumber() == sn:
+                self.camera = pylon.InstantCamera(
+                    tlFactory.CreateDevice(devices[i]))
+       
+    def connectFirst(self):
         self.camera = pylon.InstantCamera(
             pylon.TlFactory.GetInstance().CreateFirstDevice())
 
