@@ -10,7 +10,7 @@ except:
 
 class Basler(detector):
     def __init__(self):
-        self.exposure_start_delay_uS = 35
+        super(Basler, self).__init__()
 
     def connectBySerialNumber(self, sn):
         tlFactory = pylon.TlFactory.GetInstance()
@@ -25,7 +25,7 @@ class Basler(detector):
             pylon.TlFactory.GetInstance().CreateFirstDevice())
 
     def disconnect(self):
-        pass
+        self.camera = None
 
     def expose(self, max_number_of_exposures=0):
         if max_number_of_exposures == 0:
@@ -35,10 +35,10 @@ class Basler(detector):
 
     def getAOI(self):
         self.camera.Open()
-        w = self.camera.Width.GetValue()
-        h = self.camera.Height.GetValue()
         x_offset = self.camera.OffsetX.GetValue()
         y_offset = self.camera.OffsetY.GetValue()
+        w = self.camera.Width.GetValue()
+        h = self.camera.Height.GetValue()
         self.camera.Close()    
         return (w, h, x_offset, y_offset)
 
@@ -255,10 +255,10 @@ class Basler(detector):
 
     def setAOI(self, w, h, x_offset, y_offset):
         self.camera.Open()
-        self.camera.Width.SetValue(w)
-        self.camera.Height.SetValue(h)
         self.camera.OffsetX.SetValue(x_offset)
         self.camera.OffsetY.SetValue(y_offset)
+        self.camera.Width.SetValue(w)
+        self.camera.Height.SetValue(h)
         self.camera.Close()    
 
     def setAcquisitionMode(self, mode='Continuous'):
