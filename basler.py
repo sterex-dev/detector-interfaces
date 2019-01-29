@@ -434,7 +434,7 @@ class Basler(detector):
                     do_tcal = not do_tcal
             else:
                 pass
-            grabResult.Release()	
+            grabResult.Release()
         return True
 
     def showLiveFeed_callback_mousemove(self, event, x, y, flags, params):
