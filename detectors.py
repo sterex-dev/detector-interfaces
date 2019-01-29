@@ -90,8 +90,8 @@ class detector(object):
         pass
         
     def getTransmissionStartDelay(self):
-        pass   
-
+        pass  
+    
     def parseConfig(self, path):		
         npath = os.path.normpath(path)
         config = configparser.ConfigParser(inline_comment_prefixes='#')
@@ -253,5 +253,17 @@ class detector(object):
     def setPixelFormat(self, pixel_format):
         pass
 
-    def SetTransmissionStartDelay(self, delay):
-        pass        
+    def setTransmissionStartDelay(self, delay):
+        pass      
+
+    def showLiveFeed(self):
+        pass
+    
+    def showLiveFeed_callback_mousemove(self):
+        pass
+
+    def showLiveFeed_logic(self):
+        pass
+
+    def showLiveFeed_render(self):
+        pass

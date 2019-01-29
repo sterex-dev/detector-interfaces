@@ -1,5 +1,6 @@
 import time
 
+import cv2
 from pypylon import pylon
 from pypylon import genicam
 
@@ -376,7 +377,7 @@ class Basler(detector):
         self.camera.Close()
         return success
 
-    def SetTransmissionStartDelay(self, delay):
+    def setTransmissionStartDelay(self, delay):
         '''
             Set the time between reading out and transmitting the frame to 
             the host in ticks.
@@ -385,7 +386,86 @@ class Basler(detector):
         success = self.camera.GevSCFTD.SetValue(delay)
         self.camera.Close()      
         return success   
-   
+
+    def showLiveFeed(self, frame, response, prnu, tcal_StoT, 
+        calibration_params):
+        self.showLiveFeed_cursor_x = -1
+        self.showLiveFeed_cursor_y = -1
+        cv2.setMouseCallback(frame, self.showLiveFeed_callback_mousemove)
+
+        do_inst = False		# instrument response correction
+        do_prnu = False		# prnu correction
+        do_tcal = False		# temperature calibration
+
+        self.camera.StartGrabbingMax(10000, 
+            pylon.GrabStrategy_LatestImageOnly)
+        while True:
+            grabResult = self.camera.RetrieveResult(5000, 
+                    pylon.TimeoutHandling_ThrowException)
+            try:
+                assert self.camera.IsGrabbing() == True
+            except:
+                self.camera.StartGrabbingMax(10000, 
+                    pylon.GrabStrategy_LatestImageOnly)
+                continue
+
+            if grabResult.GrabSucceeded():
+                img = grabResult.GetArray()
+                if do_inst:
+                    img = img*response
+                if do_prnu:
+                    img = img*prnu
+                if do_tcal:
+                    # gain then offset
+                    img = img * calibration_params['gain']
+                    img = img + calibration_params['offset']
+                    img = tcal_StoT(img)
+                self.showLiveFeed_render(
+                    img, [self.showLiveFeed_cursor_x, 
+                    self.showLiveFeed_cursor_y], 'live')
+                rtn = self.showLiveFeed_logic(img)
+                if rtn == True:
+                    break
+                if rtn == 48:
+                    do_inst = not do_inst
+                if rtn == 49:
+                    do_prnu = not do_prnu
+                if rtn == 50:
+                    do_tcal = not do_tcal
+            else:
+                pass
+            grabResult.Release()	
+        return True
+
+    def showLiveFeed_callback_mousemove(self, event, x, y, flags, params):
+        self.showLiveFeed_cursor_x = x
+        self.showLiveFeed_cursor_y = y
+
+    def showLiveFeed_logic(self, img):
+        k = cv2.waitKey(1) & 0xFF
+        if k == ord('q'):
+            return True
+        if k == 48:
+            return 48
+        if k == 49:
+            return 49
+        if k == 50:
+            return 50
+        return False
+
+    def showLiveFeed_render(self, img, cursor_position, frame):
+        img8 = (img/16).astype('uint8')
+        bgr = cv2.cvtColor(img8, cv2.COLOR_GRAY2BGR)
+
+        #  cursor value
+        text = str(round(img[cursor_position[1], cursor_position[0]], 1))
+        labelOrigin = (int(round(cursor_position[0] + 20)), 
+            int(round(cursor_position[1] - 20)))
+        cv2.putText(bgr, text, labelOrigin, cv2.FONT_HERSHEY_SIMPLEX, 1.0, 
+            (255, 0, 0), 1, cv2.LINE_AA)
+
+        cv2.imshow(frame, bgr)
+
 class Basler_2040_35gm(Basler):
     def __init__(self):
         super(Basler_2040_35gm, self).__init__()
