@@ -235,23 +235,28 @@ class Basler(detector):
         self.camera.Close()      
         return delay 
 
-    def readNImagesFromBuffer(self, n_images=1, read_timeout_S=5, 
-        time_between_read_attempts_S=0):
+    def readNImagesFromBuffer(self, n_images=1, read_timeout_S=5):
         imgs = []
         last_error_code = None
-        while self.camera.IsGrabbing():
+        while len(imgs)<n_images:
+            try:
+                assert self.camera.IsGrabbing() == True
+            except:
+                self.camera.StartGrabbingMax(10000, 
+                    pylon.GrabStrategy_OneByOne)
+                continue
             try:
                 grabResult = self.camera.RetrieveResult(
                     int(read_timeout_S*10**3), 
                     pylon.TimeoutHandling_ThrowException)
+                grabResult.GrabSucceeded()
+            except:
+                continue
+
+            if grabResult.GrabSucceeded():
+                imgs.append(grabResult.Array)
                 last_error_code = grabResult.GetErrorCode()
-                if grabResult.GrabSucceeded():
-                    imgs.append(grabResult.Array)
-            except genicam.GenericException as e:
-                last_error_code = -1
-            time.sleep(time_between_read_attempts_S)
-            if grabResult is not None:
-                grabResult.Release()  
+            grabResult.Release() 
         return imgs, last_error_code
 
     def setAOI(self, w, h, x_offset, y_offset):
@@ -387,28 +392,32 @@ class Basler(detector):
         self.camera.Close()      
         return success   
 
-    def showLiveFeed(self, frame, response, prnu, tcal_StoT, 
-        calibration_params):
+    def showLiveFeed(self, frame, read_timeout_S, response=None, prnu=None, 
+    tcal_StoT=None, ss_calibration_params=None):
         self.showLiveFeed_cursor_x = -1
         self.showLiveFeed_cursor_y = -1
         cv2.setMouseCallback(frame, self.showLiveFeed_callback_mousemove)
 
-        do_inst = False		# instrument response correction
-        do_prnu = False		# prnu correction
-        do_tcal = False		# temperature calibration
-
+        do_inst = False		        # instrument response correction
+        do_prnu = False		        # prnu correction
+        do_tcal = False		        # temperature calibration
         self.camera.StartGrabbingMax(10000, 
             pylon.GrabStrategy_LatestImageOnly)
         while True:
-            grabResult = self.camera.RetrieveResult(5000, 
-                    pylon.TimeoutHandling_ThrowException)
             try:
                 assert self.camera.IsGrabbing() == True
             except:
                 self.camera.StartGrabbingMax(10000, 
                     pylon.GrabStrategy_LatestImageOnly)
                 continue
-
+            try:
+                grabResult = self.camera.RetrieveResult(
+                    int(read_timeout_S*10**3), 
+                    pylon.TimeoutHandling_ThrowException)
+                grabResult.GrabSucceeded()
+            except:
+                continue
+                
             if grabResult.GrabSucceeded():
                 img = grabResult.GetArray()
                 if do_inst:
@@ -417,24 +426,30 @@ class Basler(detector):
                     img = img*prnu
                 if do_tcal:
                     # gain then offset
-                    img = img * calibration_params['gain']
-                    img = img + calibration_params['offset']
+                    img = img * ss_calibration_params['gain']
+                    img = img + ss_calibration_params['offset']
                     img = tcal_StoT(img)
                 self.showLiveFeed_render(
                     img, [self.showLiveFeed_cursor_x, 
-                    self.showLiveFeed_cursor_y], 'live')
+                    self.showLiveFeed_cursor_y], 'live', do_inst, do_prnu,
+                    do_tcal)
                 rtn = self.showLiveFeed_logic(img)
                 if rtn == True:
                     break
                 if rtn == 48:
-                    do_inst = not do_inst
+                    if response is not None:
+                        do_inst = not do_inst
                 if rtn == 49:
-                    do_prnu = not do_prnu
+                    if prnu is not None:
+                        do_prnu = not do_prnu
                 if rtn == 50:
-                    do_tcal = not do_tcal
+                    if tcal_StoT is not None \
+                    and ss_calibration_params is not None:
+                        do_tcal = not do_tcal
             else:
                 pass
-            grabResult.Release()
+            if grabResult is not None:
+                grabResult.Release() 
         return True
 
     def showLiveFeed_callback_mousemove(self, event, x, y, flags, params):
@@ -453,15 +468,48 @@ class Basler(detector):
             return 50
         return False
 
-    def showLiveFeed_render(self, img, cursor_position, frame):
+    def showLiveFeed_render(self, img, cursor_position, frame, do_inst, do_prnu, 
+        do_tcal):
         img8 = (img/16).astype('uint8')
         bgr = cv2.cvtColor(img8, cv2.COLOR_GRAY2BGR)
 
+        scale_height = img.shape[1]/cv2.getWindowImageRect(frame)[3]
+        scale_width = img.shape[0]/cv2.getWindowImageRect(frame)[2]
+        
+        x = int(img.shape[0]-(50*scale_width))
+        y = int(50*scale_height)
+        text = "inst (KP0)"
+        if do_inst:
+            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
+                scale_height, (0, 255, 0), 1, cv2.LINE_AA)
+        else:
+            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
+                scale_height, (0, 0, 255), 1, cv2.LINE_AA)
+
+        y += int(50*scale_height)
+        text = "prnu (KP1)"
+        if do_prnu:
+            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
+                scale_height, (0, 255, 0), 1, cv2.LINE_AA)
+        else:
+            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
+                scale_height, (0, 0, 255), 1, cv2.LINE_AA)
+
+        y += int(50*scale_height)
+        text = "tcal (KP2)"
+        if do_tcal:
+            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
+                scale_height, (0, 255, 0), 1, cv2.LINE_AA)
+        else:
+            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
+                scale_height, (0, 0, 255), 1, cv2.LINE_AA)
+
         #  cursor value
         text = str(round(img[cursor_position[1], cursor_position[0]], 1))
-        labelOrigin = (int(round(cursor_position[0] + 20)), 
-            int(round(cursor_position[1] - 20)))
-        cv2.putText(bgr, text, labelOrigin, cv2.FONT_HERSHEY_SIMPLEX, 1.0, 
+        labelOrigin = (int(round(cursor_position[0] + 20*scale_width)), 
+            int(round(cursor_position[1] - 20*scale_height)))
+
+        cv2.putText(bgr, text, labelOrigin, cv2.FONT_HERSHEY_SIMPLEX, scale_height,
             (255, 0, 0), 1, cv2.LINE_AA)
 
         cv2.imshow(frame, bgr)

@@ -105,67 +105,67 @@ class detector(object):
     def sendCameraParametersByConfig(self, config):
         try:
             pixel_format = str(
-                config['parameters']['PIXEL_FORMAT'])
+                config['PIXEL_FORMAT'])
         except KeyError:
             pixel_format = None        
         try:
-            x_offset = int(config['parameters']['IMAGE_X_OFFSET'])
+            x_offset = int(config['IMAGE_X_OFFSET'])
         except KeyError:
             x_offset = None
         try:
-            y_offset = int(config['parameters']['IMAGE_Y_OFFSET'])
+            y_offset = int(config['IMAGE_Y_OFFSET'])
         except KeyError:
             y_offset = None				
         try:
-            width = int(config['parameters']['IMAGE_WIDTH'])
+            width = int(config['IMAGE_WIDTH'])
         except KeyError:
             width = None	
         try:
-            height = int(config['parameters']['IMAGE_HEIGHT'])
+            height = int(config['IMAGE_HEIGHT'])
         except KeyError:
             height = None
         try:
-            gain = int(config['parameters']['GAIN'])
+            gain = int(config['GAIN'])
         except KeyError:
             gain = None
         try:
             gain_auto = str(
-                config['parameters']['GAIN_AUTO'])
+                config['GAIN_AUTO'])
         except KeyError:
             gain_auto = None           
         try:
-            bias = int(config['parameters']['BIAS'])
+            bias = int(config['BIAS'])
         except KeyError:
             bias = None
         try:
-            binning_h = int(config['parameters']['BINNING_H'])
+            binning_h = int(config['BINNING_H'])
         except KeyError:
             binning_h = None
         try: 
-            binning_v = int(config['parameters']['BINNING_V'])
+            binning_v = int(config['BINNING_V'])
         except KeyError:
             binning_v = None
         try:
-            binning_mode = str(config['parameters']['BINNING_MODE'])
+            binning_mode = str(config['BINNING_MODE'])
         except KeyError:
             binning_mode = None
         try:
-            frame_rate = int(config['parameters']['FRAME_RATE'])
+            frame_rate = int(config['FRAME_RATE'])
         except KeyError:
             frame_rate = None
         try:
             acquisition_mode = str(
-                config['parameters']['ACQUISITION_MODE'])
+                config['ACQUISITION_MODE'])
         except KeyError:
             acquisition_mode = None
         try:
             reverse_x = int(
-                config['parameters']['REVERSE_X'])
+                config['REVERSE_X'])
         except KeyError:
             reverse_x = None           
         try:
             reverse_y = int(
-                config['parameters']['REVERSE_Y'])
+                config['REVERSE_Y'])
         except KeyError:
             reverse_y = None    
 
