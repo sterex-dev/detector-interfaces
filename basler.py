@@ -1,5 +1,6 @@
 import time
 
+import cv2
 from pypylon import pylon
 from pypylon import genicam
 
@@ -10,14 +11,22 @@ except:
 
 class Basler(detector):
     def __init__(self):
-        self.exposure_start_delay_uS = 35
+        super(Basler, self).__init__()
 
-    def connect(self):
+    def connectBySerialNumber(self, sn):
+        tlFactory = pylon.TlFactory.GetInstance()
+        devices = tlFactory.EnumerateDevices()
+        for i, dev in enumerate(devices):
+            if dev.GetSerialNumber() == sn:
+                self.camera = pylon.InstantCamera(
+                    tlFactory.CreateDevice(devices[i]))
+       
+    def connectFirst(self):
         self.camera = pylon.InstantCamera(
             pylon.TlFactory.GetInstance().CreateFirstDevice())
 
     def disconnect(self):
-        pass
+        self.camera = None
 
     def expose(self, max_number_of_exposures=0):
         if max_number_of_exposures == 0:
@@ -27,10 +36,10 @@ class Basler(detector):
 
     def getAOI(self):
         self.camera.Open()
-        w = self.camera.Width.GetValue()
-        h = self.camera.Height.GetValue()
         x_offset = self.camera.OffsetX.GetValue()
         y_offset = self.camera.OffsetY.GetValue()
+        w = self.camera.Width.GetValue()
+        h = self.camera.Height.GetValue()
         self.camera.Close()    
         return (w, h, x_offset, y_offset)
 
@@ -226,31 +235,36 @@ class Basler(detector):
         self.camera.Close()      
         return delay 
 
-    def readNImagesFromBuffer(self, n_images=1, read_timeout_S=5, 
-        time_between_read_attempts_S=0):
+    def readNImagesFromBuffer(self, n_images=1, read_timeout_S=5):
         imgs = []
         last_error_code = None
-        while self.camera.IsGrabbing():
+        while len(imgs)<n_images:
+            try:
+                assert self.camera.IsGrabbing() == True
+            except:
+                self.camera.StartGrabbingMax(10000, 
+                    pylon.GrabStrategy_OneByOne)
+                continue
             try:
                 grabResult = self.camera.RetrieveResult(
                     int(read_timeout_S*10**3), 
                     pylon.TimeoutHandling_ThrowException)
+                grabResult.GrabSucceeded()
+            except:
+                continue
+
+            if grabResult.GrabSucceeded():
+                imgs.append(grabResult.Array)
                 last_error_code = grabResult.GetErrorCode()
-                if grabResult.GrabSucceeded():
-                    imgs.append(grabResult.Array)
-            except genicam.GenericException as e:
-                last_error_code = -1
-            time.sleep(time_between_read_attempts_S)
-            if grabResult is not None:
-                grabResult.Release()  
+            grabResult.Release() 
         return imgs, last_error_code
 
     def setAOI(self, w, h, x_offset, y_offset):
         self.camera.Open()
-        self.camera.Width.SetValue(w)
-        self.camera.Height.SetValue(h)
         self.camera.OffsetX.SetValue(x_offset)
         self.camera.OffsetY.SetValue(y_offset)
+        self.camera.Width.SetValue(w)
+        self.camera.Height.SetValue(h)
         self.camera.Close()    
 
     def setAcquisitionMode(self, mode='Continuous'):
@@ -377,7 +391,129 @@ class Basler(detector):
         success = self.camera.GevSCFTD.SetValue(delay)
         self.camera.Close()      
         return success   
-   
+
+    def showLiveFeed(self, frame, read_timeout_S, response=None, prnu=None, 
+    tcal_StoT=None, ss_calibration_params=None):
+        self.showLiveFeed_cursor_x = -1
+        self.showLiveFeed_cursor_y = -1
+        cv2.setMouseCallback(frame, self.showLiveFeed_callback_mousemove)
+
+        do_inst = False		        # instrument response correction
+        do_prnu = False		        # prnu correction
+        do_tcal = False		        # temperature calibration
+        self.camera.StartGrabbingMax(10000, 
+            pylon.GrabStrategy_LatestImageOnly)
+        while True:
+            try:
+                assert self.camera.IsGrabbing() == True
+            except:
+                self.camera.StartGrabbingMax(10000, 
+                    pylon.GrabStrategy_LatestImageOnly)
+                continue
+            try:
+                grabResult = self.camera.RetrieveResult(
+                    int(read_timeout_S*10**3), 
+                    pylon.TimeoutHandling_ThrowException)
+                grabResult.GrabSucceeded()
+            except:
+                continue
+                
+            if grabResult.GrabSucceeded():
+                img = grabResult.GetArray()
+                if do_inst:
+                    img = img*response
+                if do_prnu:
+                    img = img*prnu
+                if do_tcal:
+                    # gain then offset
+                    img = img * ss_calibration_params['gain']
+                    img = img + ss_calibration_params['offset']
+                    img = tcal_StoT(img)
+                self.showLiveFeed_render(
+                    img, [self.showLiveFeed_cursor_x, 
+                    self.showLiveFeed_cursor_y], 'live', do_inst, do_prnu,
+                    do_tcal)
+                rtn = self.showLiveFeed_logic(img)
+                if rtn == True:
+                    break
+                if rtn == 48:
+                    if response is not None:
+                        do_inst = not do_inst
+                if rtn == 49:
+                    if prnu is not None:
+                        do_prnu = not do_prnu
+                if rtn == 50:
+                    if tcal_StoT is not None \
+                    and ss_calibration_params is not None:
+                        do_tcal = not do_tcal
+            else:
+                pass
+            if grabResult is not None:
+                grabResult.Release() 
+        return True
+
+    def showLiveFeed_callback_mousemove(self, event, x, y, flags, params):
+        self.showLiveFeed_cursor_x = x
+        self.showLiveFeed_cursor_y = y
+
+    def showLiveFeed_logic(self, img):
+        k = cv2.waitKey(1) & 0xFF
+        if k == ord('q'):
+            return True
+        if k == 48:
+            return 48
+        if k == 49:
+            return 49
+        if k == 50:
+            return 50
+        return False
+
+    def showLiveFeed_render(self, img, cursor_position, frame, do_inst, do_prnu, 
+        do_tcal):
+        img8 = (img/16).astype('uint8')
+        bgr = cv2.cvtColor(img8, cv2.COLOR_GRAY2BGR)
+
+        scale_height = img.shape[1]/cv2.getWindowImageRect(frame)[3]
+        scale_width = img.shape[0]/cv2.getWindowImageRect(frame)[2]
+        
+        x = int(img.shape[0]-(50*scale_width))
+        y = int(50*scale_height)
+        text = "inst (KP0)"
+        if do_inst:
+            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
+                scale_height, (0, 255, 0), 1, cv2.LINE_AA)
+        else:
+            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
+                scale_height, (0, 0, 255), 1, cv2.LINE_AA)
+
+        y += int(50*scale_height)
+        text = "prnu (KP1)"
+        if do_prnu:
+            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
+                scale_height, (0, 255, 0), 1, cv2.LINE_AA)
+        else:
+            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
+                scale_height, (0, 0, 255), 1, cv2.LINE_AA)
+
+        y += int(50*scale_height)
+        text = "tcal (KP2)"
+        if do_tcal:
+            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
+                scale_height, (0, 255, 0), 1, cv2.LINE_AA)
+        else:
+            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
+                scale_height, (0, 0, 255), 1, cv2.LINE_AA)
+
+        #  cursor value
+        text = str(round(img[cursor_position[1], cursor_position[0]], 1))
+        labelOrigin = (int(round(cursor_position[0] + 20*scale_width)), 
+            int(round(cursor_position[1] - 20*scale_height)))
+
+        cv2.putText(bgr, text, labelOrigin, cv2.FONT_HERSHEY_SIMPLEX, scale_height,
+            (255, 0, 0), 1, cv2.LINE_AA)
+
+        cv2.imshow(frame, bgr)
+
 class Basler_2040_35gm(Basler):
     def __init__(self):
         super(Basler_2040_35gm, self).__init__()
