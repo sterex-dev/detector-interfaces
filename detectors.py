@@ -14,7 +14,7 @@ class detector(object):
     def expose(self, max_number_of_exposures=0):
         pass
 
-    def getAOI(self, w, h, x_offset, y_offset):
+    def getAOI(self):
         pass
 
     def getBandwidthAssigned(self):
@@ -91,12 +91,6 @@ class detector(object):
         
     def getTransmissionStartDelay(self):
         pass  
-    
-    def parseConfig(self, path):		
-        npath = os.path.normpath(path)
-        config = configparser.ConfigParser(inline_comment_prefixes='#')
-        config.read(npath)
-        return config
 
     def readNImagesFromBuffer(self, n_images, read_timeout_S, 
         time_between_read_attempts_S):
