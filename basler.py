@@ -4,53 +4,97 @@ import cv2
 from pypylon import pylon
 from pypylon import genicam
 
-try:
-    from .detectors import detector
-except:
-    from detectors import detector
+from .cameras import camera
 
-class Basler(detector):
+class Basler(camera):
     def __init__(self):
         super(Basler, self).__init__()
 
-    def connectBySerialNumber(self, sn):
-        tlFactory = pylon.TlFactory.GetInstance()
-        devices = tlFactory.EnumerateDevices()
-        for i, dev in enumerate(devices):
-            if dev.GetSerialNumber() == sn:
-                self.camera = pylon.InstantCamera(
-                    tlFactory.CreateDevice(devices[i]))
-       
-    def connectFirst(self):
-        self.camera = pylon.InstantCamera(
-            pylon.TlFactory.GetInstance().CreateFirstDevice())
+    def connect(self):
+        """ Open connection to a camera. """
+        try:
+            assert self.camera is not None
+            self.camera.Open()
+        except AssertionError:
+            raise Exception("No camera is currently defined. You may need " + 
+            "to run find() first.")   
 
     def disconnect(self):
-        self.camera = None
+        """ Disconnect from a camera. """
+        try:
+            assert self.camera is not None
+            self.camera.Close()
+        except AssertionError:
+            raise Exception("No camera is currently defined.")       
 
-    def expose(self, max_number_of_exposures=0):
+    def find(self, serial_number=None, assign=True):
+        """ Find a camera.
+
+        The search can be conducted with or without a serial number. If 
+        [serial_number] is not specified, the routine will return the first 
+        available camera.
+
+        If [assign] is set to True, the returned camera will be assigned to 
+        [self.camera].
+        """
+        tlFactory = pylon.TlFactory.GetInstance()
+        devices = tlFactory.EnumerateDevices()
+        try:
+            if serial_number is not None:
+                for i, dev in enumerate(devices):
+                    if int(dev.GetSerialNumber()) == int(serial_number):
+                        camera = pylon.InstantCamera(
+                            tlFactory.CreateDevice(devices[i]))
+                        break
+            else:
+                if len(devices) > 0:
+                    camera = pylon.InstantCamera(
+                        pylon.TlFactory.GetInstance().CreateFirstDevice())
+            assert camera is not None
+        except:
+            raise Exception("Failed to find camera.")
+
+        if assign:
+            self.camera = camera
+
+    '''def beginExpose(self, max_number_of_exposures=0):
         if max_number_of_exposures == 0:
             self.camera.StartGrabbing() 
         else:
-            self.camera.StartGrabbingMax(max_number_of_exposures)
+            self.camera.StartGrabbingMax(max_number_of_exposures)'''
 
     def getAOI(self):
-        self.camera.Open()
-        x_offset = self.camera.OffsetX.GetValue()
-        y_offset = self.camera.OffsetY.GetValue()
-        w = self.camera.Width.GetValue()
-        h = self.camera.Height.GetValue()
-        self.camera.Close()    
-        return (w, h, x_offset, y_offset)
+        """ Get the area of interest.
+
+        The area of interest is defined by an offset in x, offset in y, width 
+        and height.
+        """
+        try:
+            assert self.camera is not None
+            self.camera.connect()
+            x_offset = self.camera.OffsetX.GetValue()
+            y_offset = self.camera.OffsetY.GetValue()
+            w = self.camera.Width.GetValue()
+            h = self.camera.Height.GetValue()
+            self.camera.disconnect()    
+            return (w, h, x_offset, y_offset)
+        except AssertionError:
+            raise Exception("No camera is currently defined.")
+        except:
+            return None            
 
     def getBandwidthAssigned(self):
-        '''
-            Bandwidth assigned to camera in bytes/s, a function of network.
-        '''
-        self.camera.Open()
-        bwa = self.camera.GevSCBWA.GetValue()
-        self.camera.Close()
-        return bwa
+        """ Get the bandwidth assigned to camera in bytes/s. """
+        try:
+            assert self.camera is not None
+            self.camera.connect()
+            bwa = self.camera.GevSCBWA.GetValue()
+            self.camera.disconnect()
+            return bwa
+        except AssertionError:
+            raise Exception("No camera is currently defined.")
+        except:
+            return None
 
     def getBandwidthReserve(self):
         '''
@@ -216,15 +260,6 @@ class Basler(detector):
         self.camera.Close()
         return throughput
 
-    def getThroughputCurrent(self):
-        '''
-            Device max throughput in bytes/s. Not dependent on network.
-        '''
-        self.camera.Open()
-        throughput = self.camera.GevSCDMT.GetValue()
-        self.camera.Close()
-        return throughput
-
     def getTransmissionStartDelay(self):
         '''
             Get the time between reading out and transmitting the frame 
@@ -261,10 +296,10 @@ class Basler(detector):
 
     def setAOI(self, w, h, x_offset, y_offset):
         self.camera.Open()
-        self.camera.OffsetX.SetValue(x_offset)
-        self.camera.OffsetY.SetValue(y_offset)
         self.camera.Width.SetValue(w)
         self.camera.Height.SetValue(h)
+        self.camera.OffsetX.SetValue(x_offset)
+        self.camera.OffsetY.SetValue(y_offset)
         self.camera.Close()    
 
     def setAcquisitionMode(self, mode='Continuous'):

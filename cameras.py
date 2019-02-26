@@ -1,7 +1,7 @@
 import os
 import configparser
 
-class detector(object):
+class camera(object):
     def __init__(self):
         self.camera = None
 
@@ -85,9 +85,6 @@ class detector(object):
 
     def getThroughputCurrent(self):
         pass
-
-    def getThroughputCurrent(self):
-        pass
         
     def getTransmissionStartDelay(self):
         pass  
@@ -96,12 +93,16 @@ class detector(object):
         time_between_read_attempts_S):
         pass
 
-    def sendCameraParametersByConfig(self, config):
+    def sendParametersByConfig(self, config):
+        try:
+            exptime = int(config['EXPTIME'])
+        except KeyError:
+            exptime = None  
         try:
             pixel_format = str(
                 config['PIXEL_FORMAT'])
         except KeyError:
-            pixel_format = None        
+            pixel_format = None                  
         try:
             x_offset = int(config['IMAGE_X_OFFSET'])
         except KeyError:
@@ -163,18 +164,20 @@ class detector(object):
         except KeyError:
             reverse_y = None    
 
+        if exptime is not None:
+            self.setExposureTimeMicroseconds(exptime)
+        if pixel_format is not None:
+            self.setPixelFormat(pixel_format)
+        if width is not None and height is not None and \
+        x_offset is not None and y_offset is not None:
+            self.setAOI(width, height, x_offset, y_offset)
         if binning_h is not None:
             self.setBinningHorizontal(binning_h)
         if binning_v is not None:
             self.setBinningVertical(binning_v)
         if binning_mode is not None:
             self.setBinningHorizontalMode(binning_mode)
-            self.setBinningVerticalMode(binning_mode)
-        if pixel_format is not None:
-            self.setPixelFormat(pixel_format)
-        if width is not None and height is not None and \
-        x_offset is not None and y_offset is not None:
-            self.setAOI(width, height, x_offset, y_offset)
+            self.setBinningVerticalMode(binning_mode)            
         if gain is not None:
             self.setGain(gain)
         if gain_auto is not None:
