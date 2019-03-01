@@ -11,9 +11,6 @@ class camera(object):
     def disconnect(self):
         pass
 
-    def expose(self, max_number_of_exposures=0):
-        pass
-
     def getAOI(self):
         pass
 
@@ -89,11 +86,10 @@ class camera(object):
     def getTransmissionStartDelay(self):
         pass  
 
-    def readNImagesFromBuffer(self, n_images, read_timeout_S, 
-        time_between_read_attempts_S):
+    def read(self, n_images, read_timeout_ms):
         pass
 
-    def sendParametersByConfig(self, config):
+    def sendParameters(self, config):
         try:
             exptime = int(config['EXPTIME'])
         except KeyError:
@@ -164,40 +160,41 @@ class camera(object):
         except KeyError:
             reverse_y = None    
 
-        if exptime is not None:
-            self.setExposureTimeMicroseconds(exptime)
-        if pixel_format is not None:
-            self.setPixelFormat(pixel_format)
-        if width is not None and height is not None and \
-        x_offset is not None and y_offset is not None:
-            self.setAOI(width, height, x_offset, y_offset)
-        if binning_h is not None:
-            self.setBinningHorizontal(binning_h)
-        if binning_v is not None:
-            self.setBinningVertical(binning_v)
-        if binning_mode is not None:
-            self.setBinningHorizontalMode(binning_mode)
-            self.setBinningVerticalMode(binning_mode)            
-        if gain is not None:
-            self.setGain(gain)
-        if gain_auto is not None:
-            self.setGainAuto(gain_auto)            
-        if bias != None:
-            self.setBlackLevel(bias)
-        if frame_rate is not None:
-            self.setFrameRate(frame_rate)
-        if acquisition_mode is not None:
-            self.setAcquisitionMode(acquisition_mode)
-        if reverse_x is not None:
-            if reverse_x == 1:
-                self.setImageFlipX(True)
-            else:
-                self.setImageFlipX(False)
-        if reverse_y is not None:
-            if reverse_y == 1:
-                self.setImageFlipY(True)
-            else:
-                self.setImageFlipY(False)
+        if self.camera is not None:
+            if exptime is not None:
+                self.setExposureTimeMicroseconds(exptime)
+            if pixel_format is not None:
+                self.setPixelFormat(pixel_format)
+            if width is not None and height is not None and \
+            x_offset is not None and y_offset is not None:
+                self.setAOI(width, height, x_offset, y_offset)
+            if binning_h is not None:
+                self.setBinningHorizontal(binning_h)
+            if binning_v is not None:
+                self.setBinningVertical(binning_v)
+            if binning_mode is not None:
+                self.setBinningHorizontalMode(binning_mode)
+                self.setBinningVerticalMode(binning_mode)            
+            if gain is not None:
+                self.setGain(gain)
+            if gain_auto is not None:
+                self.setGainAuto(gain_auto)            
+            if bias != None:
+                self.setBlackLevel(bias)
+            if frame_rate is not None:
+                self.setFrameRate(frame_rate)
+            if acquisition_mode is not None:
+                self.setAcquisitionMode(acquisition_mode)
+            if reverse_x is not None:
+                if reverse_x == 1:
+                    self.setImageFlipX(True)
+                else:
+                    self.setImageFlipX(False)
+            if reverse_y is not None:
+                if reverse_y == 1:
+                    self.setImageFlipY(True)
+                else:
+                    self.setImageFlipY(False)
 
     def setAOI(self, w, h, x_offset, y_offset):
         pass

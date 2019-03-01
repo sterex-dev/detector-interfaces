@@ -57,12 +57,6 @@ class Basler(camera):
         if assign:
             self.camera = camera
 
-    '''def beginExpose(self, max_number_of_exposures=0):
-        if max_number_of_exposures == 0:
-            self.camera.StartGrabbing() 
-        else:
-            self.camera.StartGrabbingMax(max_number_of_exposures)'''
-
     def getAOI(self):
         """ Get the area of interest.
 
@@ -270,36 +264,62 @@ class Basler(camera):
         self.camera.Close()      
         return delay 
 
-    def readNImagesFromBuffer(self, n_images=1, read_timeout_S=5):
-        imgs = []
-        last_error_code = None
-        while len(imgs)<n_images:
-            try:
-                assert self.camera.IsGrabbing() == True
-            except:
-                self.camera.StartGrabbingMax(10000, 
-                    pylon.GrabStrategy_OneByOne)
-                continue
-            try:
-                grabResult = self.camera.RetrieveResult(
-                    int(read_timeout_S*10**3), 
-                    pylon.TimeoutHandling_ThrowException)
-                grabResult.GrabSucceeded()
-            except:
-                continue
+    def read(self, n_images=1, read_timeout_ms=1000, 
+        grab_timeout_ms=100, max_grab_attempts=3, grab_strategy='OneByOne'):
+        grabResults = []
+        if grab_strategy == 'OneByOne':
+            grab_attempts = 0
+            while len(grabResults) < n_images:
+                if grab_attempts >= max_grab_attempts:
+                    break
+                else:
+                    if not self.camera.IsGrabbing():
+                        self.camera.StartGrabbingMax(n_images-len(grabResults), pylon.GrabStrategy_OneByOne)
+                    while True:
+                        if self.camera.GetGrabResultWaitObject().Wait(grab_timeout_ms):
+                            grabResult = self.camera.RetrieveResult(read_timeout_ms, pylon.TimeoutHandling_Return)
+                            if grabResult.IsValid() and grabResult.GrabSucceeded():
+                                grabResults.append(grabResult)
+                        else:
+                            break
+                    grab_attempts += 1
 
-            if grabResult.GrabSucceeded():
+            imgs = []
+            for grabResult in grabResults:
                 imgs.append(grabResult.Array)
-                last_error_code = grabResult.GetErrorCode()
-            grabResult.Release() 
-        return imgs, last_error_code
+                grabResult.Release()
+            return imgs
+        elif grab_strategy == 'LatestImageOnly':
+            grab_attempts = 0
+            grabResult = None
+            while grabResult is None:
+                if grab_attempts >= max_grab_attempts:
+                    break
+                else:
+                    if not self.camera.IsGrabbing():
+                        self.camera.StartGrabbingMax(1, pylon.GrabStrategy_LatestImageOnly)
+                    while True:
+                        if self.camera.GetGrabResultWaitObject().Wait(grab_timeout_ms):
+                            grabResult = self.camera.RetrieveResult(read_timeout_ms, pylon.TimeoutHandling_Return)
+                            if grabResult.IsValid() and grabResult.GrabSucceeded():
+                                grabResults.append(grabResult)
+                        else:
+                            break
+                    grab_attempts += 1
+
 
     def setAOI(self, w, h, x_offset, y_offset):
         self.camera.Open()
-        self.camera.Width.SetValue(w)
-        self.camera.Height.SetValue(h)
-        self.camera.OffsetX.SetValue(x_offset)
-        self.camera.OffsetY.SetValue(y_offset)
+        try:
+            self.camera.Width.SetValue(w)
+            self.camera.Height.SetValue(h)
+            self.camera.OffsetX.SetValue(x_offset)
+            self.camera.OffsetY.SetValue(y_offset)
+        except genicam.OutOfRangeException:
+            self.camera.OffsetX.SetValue(x_offset)
+            self.camera.OffsetY.SetValue(y_offset)
+            self.camera.Width.SetValue(w)
+            self.camera.Height.SetValue(h)
         self.camera.Close()    
 
     def setAcquisitionMode(self, mode='Continuous'):
