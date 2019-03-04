@@ -10,6 +10,10 @@ class Basler(camera):
     def __init__(self):
         super(Basler, self).__init__()
 
+    def beginExpose(self):
+        self.camera.StartGrabbing(
+            pylon.GrabStrategy_LatestImageOnly)
+
     def connect(self):
         """ Open connection to a camera. """
         try:
@@ -26,6 +30,9 @@ class Basler(camera):
             self.camera.Close()
         except AssertionError:
             raise Exception("No camera is currently defined.")       
+
+    def endExpose(self):
+        self.camera.StopGrabbing()
 
     def find(self, serial_number=None, assign=True):
         """ Find a camera.
@@ -57,6 +64,13 @@ class Basler(camera):
         if assign:
             self.camera = camera
 
+    def getAcquisitionMode(self):
+        """ Get when the camera stops waiting for triggers. """
+        self.camera.Open()
+        mode = self.camera.AcquisitionMode.GetValue('Continuous')
+        self.camera.Close()
+        return mode
+
     def getAOI(self):
         """ Get the area of interest.
 
@@ -78,7 +92,7 @@ class Basler(camera):
             return None            
 
     def getBandwidthAssigned(self):
-        """ Get the bandwidth assigned to camera in bytes/s. """
+        """ Return the bandwidth assigned to the camera in bytes/s. """
         try:
             assert self.camera is not None
             self.camera.connect()
@@ -91,104 +105,113 @@ class Basler(camera):
             return None
 
     def getBandwidthReserve(self):
-        '''
-            % of bwa reserved to resend packets.
-        '''
+        """ Return the % of bwa reserved to resend packets. """
         self.camera.Open()
         bwr = self.camera.GevSCBWRA.GetValue()
         self.camera.Close()
         return bwr
        
     def getBinningHorizontal(self):
+        """ Return the horizontal binning factor. """
         self.camera.Open()
         binning = self.camera.BinningHorizontal.GetValue()
         self.camera.Close()
         return binning
 
     def getBinningHorizontalMode(self):
+        """ Return the horizontal binning mode. """
         self.camera.Open()
-        binning = self.camera.BinningHorizontalMode.GetValue()
+        mode = self.camera.BinningHorizontalMode.GetValue()
         self.camera.Close()
-        return binning        
+        return mode        
 
     def getBinningVertical(self):
+        """ Return the vertical binning factor. """
         self.camera.Open()
         binning = self.camera.BinningVertical.GetValue()
         self.camera.Close()
         return binning
 
     def getBinningVerticalMode(self):
+        """ Return the vertical binning mode. """
         self.camera.Open()
-        binning = self.camera.BinningVerticalMode.GetValue()
+        mode = self.camera.BinningVerticalMode.GetValue()
         self.camera.Close()
-        return binning        
+        return mode        
 
     def getBlackLevel(self):
+        """ Return the DC bias level. """
         self.camera.Open()
         level = self.camera.BlackLevelRaw.GetValue()
         self.camera.Close()
         return level  
 
     def getExposureTimeMicroseconds(self):
+        """ Return the exposure time in microseconds. """
         self.camera.Open()
         exposure_time = self.camera.ExposureTimeAbs.GetValue()
         self.camera.Close()
         return exposure_time
 
     def getFrameRate(self):
+        """ Return the frame rate. """
         self.camera.Open()
         frame_rate = self.camera.ResultingFrameRateAbs.GetValue()
         self.camera.Close()      
         return frame_rate 
 
     def getGain(self):
+        """ Return the gain. """
         self.camera.Open()
         gain = self.camera.GainRaw.GetValue()
         self.camera.Close()
         return gain
 
     def getGainAuto(self):
+        """ Return the automatic gain mode. """
         self.camera.Open()
         gain = self.camera.GainAuto.GetValue()
         self.camera.Close()
         return gain                    
 
     def getImageFlipX(self):
+        """ Return the x-axis flipping mode. """
         self.camera.Open()
         flip = self.camera.ReverseX.GetValue()
         self.camera.Close()      
         return flip
 
     def getImageFlipY(self):
+        """ Return the y-axis flipping mode. """
         self.camera.Open()
         flip = self.camera.ReverseY.GetValue()
         self.camera.Close() 
         return flip    
 
     def getIPD(self):
-        '''
-            Get delay between sending packets in ticks.
-        '''
+        """ Return delay between sending packets in ticks. """
         self.camera.Open()
         delay = self.camera.GevSCPD.GetValue()
         self.camera.Close() 
         return delay          
 
     def getMaxNumBuffers(self):
+        """ Return the maximum number of buffers available. """
         self.camera.Open()
         max_num_buffers = self.camera.MaxNumBuffer.GetValue()
         self.camera.Close()
         return max_num_buffers  
 
     def getFrameOverheadsSeconds(self):
-        '''
-            Get overheads breakdown:
+        """ Return the frame overhead in seconds.
+
+            The overhead is broken down as follows:
                 - delay between triggering and start (exposure_start_delay),
                 - time to readout (readout_time)
                 - time between reading out and transmitting 
                 (transmission_start_delay)
                 - time to transfer frame to host (transmission_delay)
-        '''
+        """
         transmission_delay_uS = self.getPayloadSize()/\
             self.getThroughputCurrent()*10**6
         transmission_start_delay_uS = self.getTransmissionStartDelay()       
@@ -202,36 +225,37 @@ class Basler(camera):
         return overheads
 
     def getPacketSize(self):
-        '''
-            Get the size used for packets in bytes.
-        '''
+        """ Return the size used for packets in bytes. """
         self.camera.Open()
         packet_size = self.camera.GevSCPSPacketSize.GetValue()
         self.camera.Close()
         return packet_size
 
     def getPayloadSize(self):
-        '''
-            Size of payload in bytes, a function of AOI and pixel format.
-        '''
+        """ Return the size of the payload in bytes, a function of AOI and 
+        pixel format.
+        """
         self.camera.Open()
         payload = self.camera.PayloadSize.GetValue()
         self.camera.Close()
         return payload
 
     def getPixelFormat(self):
+        """ Return the pixel format. """
         self.camera.Open()
         pixel_format = self.camera.PixelFormat.GetValue()
         self.camera.Close()
         return pixel_format
 
     def getReadoutTime(self):
+        """ Return the readout time. """
         self.camera.Open()
         time = self.camera.ReadoutTimeAbs.GetValue()
         self.camera.Close()
         return time
 
     def getTemperature(self, sensor_name='Coreboard'):
+        """ Return a temperature measurement. """
         self.camera.Open()
         self.camera.TemperatureSelector.SetValue(sensor_name)
         temp = self.camera.TemperatureAbs.GetValue()
@@ -239,6 +263,7 @@ class Basler(camera):
         return temp      
 
     def getTemperatureState(self, sensor_name='Coreboard'):
+        """ Return the detector's temperature state. """
         self.camera.Open()
         self.camera.TemperatureSelector.SetValue(sensor_name)
         state = self.camera.TemperatureState.GetValue()
@@ -246,19 +271,16 @@ class Basler(camera):
         return state
 
     def getThroughputCurrent(self):
-        '''
-            Device current throughput in bytes/s. Dependent on network.
-        '''
+        """ Return the current device throughput in bytes/s. """
         self.camera.Open()
         throughput = self.camera.GevSCDCT.GetValue()
         self.camera.Close()
         return throughput
 
     def getTransmissionStartDelay(self):
-        '''
-            Get the time between reading out and transmitting the frame 
-            to the host in ticks.
-        '''
+        """ Get the time between reading out and transmitting the frame to 
+        the host in ticks.
+        """
         self.camera.Open()
         delay = self.camera.GevSCFTD.GetValue()
         self.camera.Close()      
@@ -266,6 +288,12 @@ class Basler(camera):
 
     def read(self, n_images=1, read_timeout_ms=1000, 
         grab_timeout_ms=100, max_grab_attempts=3, grab_strategy='OneByOne'):
+        """ Read a frame(s) from the detector. 
+        
+        If [grab_strategy] is set to 'OneByOne' [n_frames] will be 
+        returned. If it's set to 'LatestImageOnly', [n_frames] will be 
+        ignored and a single frame will be returned.
+        """
         grabResults = []
         if grab_strategy == 'OneByOne':
             grab_attempts = 0
@@ -274,11 +302,16 @@ class Basler(camera):
                     break
                 else:
                     if not self.camera.IsGrabbing():
-                        self.camera.StartGrabbingMax(n_images-len(grabResults), pylon.GrabStrategy_OneByOne)
+                        self.camera.StartGrabbingMax(
+                            n_images-len(grabResults), 
+                            pylon.GrabStrategy_OneByOne)
                     while True:
-                        if self.camera.GetGrabResultWaitObject().Wait(grab_timeout_ms):
-                            grabResult = self.camera.RetrieveResult(read_timeout_ms, pylon.TimeoutHandling_Return)
-                            if grabResult.IsValid() and grabResult.GrabSucceeded():
+                        if self.camera.GetGrabResultWaitObject().Wait(
+                            grab_timeout_ms):
+                            grabResult = self.camera.RetrieveResult(
+                                read_timeout_ms, pylon.TimeoutHandling_Return)
+                            if grabResult.IsValid() and \
+                            grabResult.GrabSucceeded():
                                 grabResults.append(grabResult)
                         else:
                             break
@@ -291,24 +324,35 @@ class Basler(camera):
             return imgs
         elif grab_strategy == 'LatestImageOnly':
             grab_attempts = 0
-            grabResult = None
-            while grabResult is None:
+            img = None
+            while img is None:
                 if grab_attempts >= max_grab_attempts:
                     break
                 else:
                     if not self.camera.IsGrabbing():
-                        self.camera.StartGrabbingMax(1, pylon.GrabStrategy_LatestImageOnly)
+                        self.camera.StartGrabbing(
+                            pylon.GrabStrategy_LatestImageOnly)
                     while True:
-                        if self.camera.GetGrabResultWaitObject().Wait(grab_timeout_ms):
-                            grabResult = self.camera.RetrieveResult(read_timeout_ms, pylon.TimeoutHandling_Return)
-                            if grabResult.IsValid() and grabResult.GrabSucceeded():
-                                grabResults.append(grabResult)
+                        if self.camera.GetGrabResultWaitObject().Wait(
+                            grab_timeout_ms):
+                            grabResult = self.camera.RetrieveResult(
+                                read_timeout_ms, pylon.TimeoutHandling_Return)
+                            if grabResult.IsValid() and \
+                            grabResult.GrabSucceeded():
+                                img = grabResult.Array
+                                grabResult.Release()
+                                break
                         else:
                             break
                     grab_attempts += 1
-
+            return img
 
     def setAOI(self, w, h, x_offset, y_offset):
+        """ Set the area of interest.
+
+        The area of interest is defined by an offset in x, offset in y, width 
+        and height.
+        """
         self.camera.Open()
         try:
             self.camera.Width.SetValue(w)
@@ -323,45 +367,58 @@ class Basler(camera):
         self.camera.Close()    
 
     def setAcquisitionMode(self, mode='Continuous'):
-        '''
-            Set when the camera stops waiting for triggers.
+        """ Set when the camera stops waiting for triggers.
 
-            Can be 'Continuous' or 'SingleFrame'.
-        '''
+        Can be 'Continuous' or 'SingleFrame'.
+        """
         self.camera.Open()
-        success = self.camera.AcquisitionMode.SetValue('Continuous')
+        success = self.camera.AcquisitionMode.SetValue(mode)
         self.camera.Close()
         return success
 
     def setBinningHorizontal(self, binning):
+        """ Set the horizontal binning factor. """
         self.camera.Open()
         success = self.camera.BinningHorizontal.SetValue(binning)
         self.camera.Close()
         return success
 
+    def setBinningHorizontalMode(self, mode):
+        # This is overriden for different camera models as the 
+        # function call is different.
+        pass
+
     def setBinningVertical(self, binning):
+        """ Set the vertical binning factor. """
         self.camera.Open()
         success = self.camera.BinningVertical.SetValue(binning)
         self.camera.Close()
         return success
 
+    def setBinningVerticalMode(self, mode):
+        # This is overriden for different camera models as the 
+        # function call is different.
+        pass  
+
     def setBlackLevel(self, level):
+        """ Set the DC bias level. """
         self.camera.Open()
         success = self.camera.BlackLevelRaw.SetValue(level)
         self.camera.Close()
         return success  
 
     def setExposureTimeMicroseconds(self, exposure_time):
+        """ Set the exposure time in microseconds. """
         self.camera.Open()
         success = self.camera.ExposureTimeAbs.SetValue(exposure_time)
         self.camera.Close()
         return success
 
     def setFrameRate(self, frame_rate):
-        '''
-            Force frame rate (frames/s) to be a certain value. 0 turns this 
-            off.
-        '''
+        """ Force frame rate (frames/s) to be a certain value. 
+        
+        0 turns this off.
+        """
         self.camera.Open()
         if frame_rate == 0:
             success = self.camera.AcquisitionFrameRateEnable.SetValue(False)
@@ -372,48 +429,49 @@ class Basler(camera):
         return success
 
     def setGain(self, gain):
+        """ Set the gain. """
         self.camera.Open()
         success = self.camera.GainRaw.SetValue(gain)
         self.camera.Close()        
         return success   
 
     def setGainAuto(self, gain_auto='Off'):
+        """ Set the automatic gain mode. """
         self.camera.Open()
         success = self.camera.GainAuto.SetValue(gain_auto)
         self.camera.Close()
         return success            
 
     def setImageFlipX(self, flip):
+        """ Set the x-axis flipping mode. """
         self.camera.Open()
         success = self.camera.ReverseX.SetValue(flip)
         self.camera.Close()        
         return success
 
     def setImageFlipY(self, flip):
+        """ Set the y-axis flipping mode. """
         self.camera.Open()
         success = self.camera.ReverseY.SetValue(flip)
         self.camera.Close()    
         return success
 
     def setIPD(self, delay):
-        '''
-            Set delay between sending packets in ticks.
-        '''
+        """ Set delay between sending packets in ticks. """ 
         self.camera.Open()
         success = self.camera.GevSCPD.SetValue(delay)
         self.camera.Close() 
         return success   
 
     def setMaxNumBuffers(self, max_num_buffers=25):
+        """ Set the maximum number of buffers available. """
         self.camera.Open()
         success = self.camera.MaxNumBuffer.SetValue(max_num_buffers)
         self.camera.Close()
         return success
 
     def setPacketSize(self, size):
-        '''
-            Set the size used for packets in bytes.
-        '''
+        """ Set the packet size in bytes. """
         self.camera.Open()
         success = self.camera.GevSCPSPacketSize.SetValue(size)
         self.camera.Close()
@@ -435,139 +493,19 @@ class Basler(camera):
         self.camera.Close()      
         return success   
 
-    def showLiveFeed(self, frame, read_timeout_S, response=None, prnu=None, 
-    tcal_StoT=None, ss_calibration_params=None):
-        self.showLiveFeed_cursor_x = -1
-        self.showLiveFeed_cursor_y = -1
-        cv2.setMouseCallback(frame, self.showLiveFeed_callback_mousemove)
-
-        do_inst = False		        # instrument response correction
-        do_prnu = False		        # prnu correction
-        do_tcal = False		        # temperature calibration
-        self.camera.StartGrabbingMax(10000, 
-            pylon.GrabStrategy_LatestImageOnly)
-        while True:
-            try:
-                assert self.camera.IsGrabbing() == True
-            except:
-                self.camera.StartGrabbingMax(10000, 
-                    pylon.GrabStrategy_LatestImageOnly)
-                continue
-            try:
-                grabResult = self.camera.RetrieveResult(
-                    int(read_timeout_S*10**3), 
-                    pylon.TimeoutHandling_ThrowException)
-                grabResult.GrabSucceeded()
-            except:
-                continue
-                
-            if grabResult.GrabSucceeded():
-                img = grabResult.GetArray()
-                if do_inst:
-                    img = img*response
-                if do_prnu:
-                    img = img*prnu
-                if do_tcal:
-                    # gain then offset
-                    img = img * ss_calibration_params['gain']
-                    img = img + ss_calibration_params['offset']
-                    img = tcal_StoT(img)
-                self.showLiveFeed_render(
-                    img, [self.showLiveFeed_cursor_x, 
-                    self.showLiveFeed_cursor_y], 'live', do_inst, do_prnu,
-                    do_tcal)
-                rtn = self.showLiveFeed_logic(img)
-                if rtn == True:
-                    break
-                if rtn == 48:
-                    if response is not None:
-                        do_inst = not do_inst
-                if rtn == 49:
-                    if prnu is not None:
-                        do_prnu = not do_prnu
-                if rtn == 50:
-                    if tcal_StoT is not None \
-                    and ss_calibration_params is not None:
-                        do_tcal = not do_tcal
-            else:
-                pass
-            if grabResult is not None:
-                grabResult.Release() 
-        return True
-
-    def showLiveFeed_callback_mousemove(self, event, x, y, flags, params):
-        self.showLiveFeed_cursor_x = x
-        self.showLiveFeed_cursor_y = y
-
-    def showLiveFeed_logic(self, img):
-        k = cv2.waitKey(1) & 0xFF
-        if k == ord('q'):
-            return True
-        if k == 48:
-            return 48
-        if k == 49:
-            return 49
-        if k == 50:
-            return 50
-        return False
-
-    def showLiveFeed_render(self, img, cursor_position, frame, do_inst, do_prnu, 
-        do_tcal):
-        img8 = (img/16).astype('uint8')
-        bgr = cv2.cvtColor(img8, cv2.COLOR_GRAY2BGR)
-
-        scale_height = img.shape[1]/cv2.getWindowImageRect(frame)[3]
-        scale_width = img.shape[0]/cv2.getWindowImageRect(frame)[2]
-        
-        x = int(img.shape[0]-(50*scale_width))
-        y = int(50*scale_height)
-        text = "inst (KP0)"
-        if do_inst:
-            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
-                scale_height, (0, 255, 0), 1, cv2.LINE_AA)
-        else:
-            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
-                scale_height, (0, 0, 255), 1, cv2.LINE_AA)
-
-        y += int(50*scale_height)
-        text = "prnu (KP1)"
-        if do_prnu:
-            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
-                scale_height, (0, 255, 0), 1, cv2.LINE_AA)
-        else:
-            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
-                scale_height, (0, 0, 255), 1, cv2.LINE_AA)
-
-        y += int(50*scale_height)
-        text = "tcal (KP2)"
-        if do_tcal:
-            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
-                scale_height, (0, 255, 0), 1, cv2.LINE_AA)
-        else:
-            cv2.putText(bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
-                scale_height, (0, 0, 255), 1, cv2.LINE_AA)
-
-        #  cursor value
-        text = str(round(img[cursor_position[1], cursor_position[0]], 1))
-        labelOrigin = (int(round(cursor_position[0] + 20*scale_width)), 
-            int(round(cursor_position[1] - 20*scale_height)))
-
-        cv2.putText(bgr, text, labelOrigin, cv2.FONT_HERSHEY_SIMPLEX, scale_height,
-            (255, 0, 0), 1, cv2.LINE_AA)
-
-        cv2.imshow(frame, bgr)
-
 class Basler_2040_35gm(Basler):
     def __init__(self):
         super(Basler_2040_35gm, self).__init__()
     
     def setBinningHorizontalMode(self, mode):
+        """ Set the horizontal binning mode. """
         self.camera.Open()
         success = self.camera.BinningHorizontalMode.SetValue(mode)
         self.camera.Close()
         return success
 
     def setBinningVerticalMode(self, mode):
+        """ Set the vertical binning mode. """
         self.camera.Open()
         success = self.camera.BinningVerticalMode.SetValue(mode)
         self.camera.Close()
@@ -578,12 +516,14 @@ class Basler_1600_60gm(Basler):
         super(Basler_1600_60gm, self).__init__()
     
     def setBinningHorizontalMode(self, mode):
+        """ Set the horizontal binning mode. """
         self.camera.Open()
         success = self.camera.BinningModeHorizontal.SetValue(mode)
         self.camera.Close()
         return success
 
     def setBinningVerticalMode(self, mode):
+        """ Set the vertical binning mode. """
         self.camera.Open()
         success = self.camera.BinningModeVertical.SetValue(mode)
         self.camera.Close()

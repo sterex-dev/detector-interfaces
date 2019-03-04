@@ -5,10 +5,19 @@ class camera(object):
     def __init__(self):
         self.camera = None
 
+    def beginExpose(self):
+        pass
+
     def connect(self):
         pass
 
     def disconnect(self):
+        pass
+    
+    def endExpose(self):
+        pass
+
+    def getAcquisitionMode(self):
         pass
 
     def getAOI(self):
@@ -158,7 +167,12 @@ class camera(object):
             reverse_y = int(
                 config['REVERSE_Y'])
         except KeyError:
-            reverse_y = None    
+            reverse_y = None  
+        try:
+            packet_size = int(
+                config['PACKET_SIZE'])
+        except KeyError:
+            packet_size = None               
 
         if self.camera is not None:
             if exptime is not None:
@@ -195,6 +209,8 @@ class camera(object):
                     self.setImageFlipY(True)
                 else:
                     self.setImageFlipY(False)
+            if packet_size is not None:
+                self.setPacketSize(packet_size)
 
     def setAOI(self, w, h, x_offset, y_offset):
         pass
