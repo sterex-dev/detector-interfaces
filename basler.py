@@ -11,7 +11,7 @@ class Basler(camera):
         super(Basler, self).__init__()
 
     def beginExpose(self):
-        self.camera.StartGrabbing(
+        self.camera.StartGrabbingMax(100000,
             pylon.GrabStrategy_LatestImageOnly)
 
     def connect(self):
@@ -330,11 +330,11 @@ class Basler(camera):
                     break
                 else:
                     if not self.camera.IsGrabbing():
-                        self.camera.StartGrabbing(
-                            pylon.GrabStrategy_LatestImageOnly)
+                        raise Exception("Camera is not currently exposing.")
+                        return None
                     while True:
                         if self.camera.GetGrabResultWaitObject().Wait(
-                            grab_timeout_ms):
+                            grab_timeout_ms):                      
                             grabResult = self.camera.RetrieveResult(
                                 read_timeout_ms, pylon.TimeoutHandling_Return)
                             if grabResult.IsValid() and \
@@ -342,6 +342,8 @@ class Basler(camera):
                                 img = grabResult.Array
                                 grabResult.Release()
                                 break
+                            else:
+                                grabResult.Release()
                         else:
                             break
                     grab_attempts += 1
