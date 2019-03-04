@@ -10,10 +10,6 @@ class Basler(camera):
     def __init__(self):
         super(Basler, self).__init__()
 
-    def beginExpose(self):
-        self.camera.StartGrabbing(
-            pylon.GrabStrategy_LatestImageOnly)
-
     def connect(self):
         """ Open connection to a camera. """
         try:
@@ -30,9 +26,6 @@ class Basler(camera):
             self.camera.Close()
         except AssertionError:
             raise Exception("No camera is currently defined.")       
-
-    def endExpose(self):
-        self.camera.StopGrabbing()
 
     def find(self, serial_number=None, assign=True):
         """ Find a camera.
@@ -295,58 +288,45 @@ class Basler(camera):
         ignored and a single frame will be returned.
         """
         if grab_strategy == 'OneByOne':
-            grabResults = []
+            imgs = []
             grab_attempts = 0
-            while len(grabResults) < n_images:
+            while len(imgs) < n_images:
                 if grab_attempts >= max_grab_attempts:
                     break
                 else:
                     if not self.camera.IsGrabbing():
                         self.camera.StartGrabbingMax(
-                            n_images-len(grabResults), 
+                            n_images-len(imgs), 
                             pylon.GrabStrategy_OneByOne)
-                    while True:
-                        if self.camera.GetGrabResultWaitObject().Wait(
-                            grab_timeout_ms):
-                            grabResult = self.camera.RetrieveResult(
-                                read_timeout_ms, pylon.TimeoutHandling_Return)
-                            if grabResult.IsValid() and \
-                            grabResult.GrabSucceeded():
-                                grabResults.append(grabResult)
-                        else:
-                            break
+                    if self.camera.GetGrabResultWaitObject().Wait(
+                        grab_timeout_ms):
+                        grabResult = self.camera.RetrieveResult(
+                            read_timeout_ms, pylon.TimeoutHandling_Return)
+                        if grabResult.IsValid() and \
+                        grabResult.GrabSucceeded():
+                            imgs.append(grabResult.Array)
+                            grabResult.Release()
                     grab_attempts += 1
-
-            imgs = []
-            for grabResult in grabResults:
-                imgs.append(grabResult.Array)
-                grabResult.Release()
             return imgs
         elif grab_strategy == 'LatestImageOnly':
-            grab_attempts = 0
             img = None
+            grab_attempts = 0
             while img is None:
                 if grab_attempts >= max_grab_attempts:
                     break
                 else:
                     if not self.camera.IsGrabbing():
-                        raise Exception("Camera is not currently exposing.")
-                        return None
-                    while True:
-                        if self.camera.GetGrabResultWaitObject().Wait(
-                            grab_timeout_ms):                      
-                            grabResult = self.camera.RetrieveResult(
-                                read_timeout_ms, pylon.TimeoutHandling_Return)
-                            if grabResult.IsValid() and \
-                            grabResult.GrabSucceeded():
-                                img = grabResult.Array
-                                grabResult.Release()
-                                break
-                            else:
-                                grabResult.Release()
-                        else:
-                            break
-                    grab_attempts += 1
+                        self.camera.StartGrabbing(
+                            pylon.GrabStrategy_LatestImageOnly)
+                    if self.camera.GetGrabResultWaitObject().Wait(
+                        grab_timeout_ms):                      
+                        grabResult = self.camera.RetrieveResult(
+                            read_timeout_ms, pylon.TimeoutHandling_Return)
+                        if grabResult.IsValid() and \
+                        grabResult.GrabSucceeded():
+                            img = grabResult.Array
+                        grabResult.Release()
+                        grab_attempts += 1
             return img
 
     def setAOI(self, w, h, x_offset, y_offset):
