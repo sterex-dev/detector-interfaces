@@ -11,7 +11,7 @@ class Basler(camera):
         super(Basler, self).__init__()
 
     def beginExpose(self):
-        self.camera.StartGrabbingMax(100000,
+        self.camera.StartGrabbing(
             pylon.GrabStrategy_LatestImageOnly)
 
     def connect(self):
