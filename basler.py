@@ -294,8 +294,8 @@ class Basler(camera):
         returned. If it's set to 'LatestImageOnly', [n_frames] will be 
         ignored and a single frame will be returned.
         """
-        grabResults = []
         if grab_strategy == 'OneByOne':
+            grabResults = []
             grab_attempts = 0
             while len(grabResults) < n_images:
                 if grab_attempts >= max_grab_attempts:
