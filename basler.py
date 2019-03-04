@@ -56,14 +56,6 @@ class Basler(camera):
 
         if assign:
             self.camera = camera
-<<<<<<< HEAD
-=======
-            '''def beginExpose(self, max_number_of_exposures=0):
-        if max_number_of_exposures == 0:
-            self.camera.StartGrabbing() 
-        else:
-            self.camera.StartGrabbingMax(max_number_of_exposures)'''
->>>>>>> fe577d6baab7b81d6cb34ae0785386646cdcea93
 
     def getAOI(self):
         """ Get the area of interest.
