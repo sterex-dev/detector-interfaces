@@ -56,6 +56,14 @@ class Basler(camera):
 
         if assign:
             self.camera = camera
+<<<<<<< HEAD
+=======
+            '''def beginExpose(self, max_number_of_exposures=0):
+        if max_number_of_exposures == 0:
+            self.camera.StartGrabbing() 
+        else:
+            self.camera.StartGrabbingMax(max_number_of_exposures)'''
+>>>>>>> fe577d6baab7b81d6cb34ae0785386646cdcea93
 
     def getAOI(self):
         """ Get the area of interest.
@@ -339,21 +347,9 @@ class Basler(camera):
         self.camera.Close()
         return success
 
-    def setBinningHorizontalMode(self, mode):
-        self.camera.Open()
-        success = self.camera.BinningHorizontalMode.SetValue(mode)
-        self.camera.Close()
-        return success
-
     def setBinningVertical(self, binning):
         self.camera.Open()
         success = self.camera.BinningVertical.SetValue(binning)
-        self.camera.Close()
-        return success
-
-    def setBinningVerticalMode(self, mode):
-        self.camera.Open()
-        success = self.camera.BinningVerticalMode.SetValue(mode)
         self.camera.Close()
         return success
 
@@ -573,6 +569,33 @@ class Basler_2040_35gm(Basler):
     def __init__(self):
         super(Basler_2040_35gm, self).__init__()
     
+    def setBinningHorizontalMode(self, mode):
+        self.camera.Open()
+        success = self.camera.BinningHorizontalMode.SetValue(mode)
+        self.camera.Close()
+        return success
+
+    def setBinningVerticalMode(self, mode):
+        self.camera.Open()
+        success = self.camera.BinningVerticalMode.SetValue(mode)
+        self.camera.Close()
+        return success
+
+class Basler_1600_60gm(Basler):
+    def __init__(self):
+        super(Basler_1600_60gm, self).__init__()
+    
+    def setBinningHorizontalMode(self, mode):
+        self.camera.Open()
+        success = self.camera.BinningModeHorizontal.SetValue(mode)
+        self.camera.Close()
+        return success
+
+    def setBinningVerticalMode(self, mode):
+        self.camera.Open()
+        success = self.camera.BinningModeVertical.SetValue(mode)
+        self.camera.Close()
+        return success
 
 
 
