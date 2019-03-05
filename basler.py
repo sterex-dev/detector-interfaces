@@ -10,6 +10,10 @@ class Basler(camera):
     def __init__(self):
         super(Basler, self).__init__()
 
+    def beginExpose(self):
+        self.camera.StartGrabbing(
+            pylon.GrabStrategy_LatestImageOnly)
+
     def connect(self):
         """ Open connection to a camera. """
         try:
@@ -26,6 +30,9 @@ class Basler(camera):
             self.camera.Close()
         except AssertionError:
             raise Exception("No camera is currently defined.")       
+
+    def endExpose(self):
+        self.camera.StopGrabbing()
 
     def find(self, serial_number=None, assign=True):
         """ Find a camera.
@@ -278,6 +285,12 @@ class Basler(camera):
         delay = self.camera.GevSCFTD.GetValue()
         self.camera.Close()      
         return delay 
+
+    def isExposing(self):
+        if self.camera.IsGrabbing():
+            return True
+        else:
+            return False
 
     def read(self, n_images=1, read_timeout_ms=1000, 
         grab_timeout_ms=100, max_grab_attempts=3, grab_strategy='OneByOne'):
