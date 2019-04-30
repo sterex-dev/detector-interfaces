@@ -146,6 +146,13 @@ class Basler(camera):
         self.camera.Close()
         return level  
 
+    def getDeviceUserID(self):
+        """ Return the device ID. """
+        self.camera.Open()
+        did = self.camera.DeviceUserID.GetValue()
+        self.camera.Close()
+        return did          
+
     def getExposureTimeMicroseconds(self):
         """ Return the exposure time in microseconds. """
         self.camera.Open()
@@ -292,7 +299,7 @@ class Basler(camera):
         else:
             return False
 
-    def read(self, n_images=1, read_timeout_ms=1000, 
+    def read(self, n_images=1, read_timeout_ms=10000, 
         grab_timeout_ms=100, max_grab_attempts=3, grab_strategy='OneByOne'):
         """ Read a frame(s) from the detector. 
         
@@ -399,6 +406,13 @@ class Basler(camera):
         """ Set the DC bias level. """
         self.camera.Open()
         success = self.camera.BlackLevelRaw.SetValue(level)
+        self.camera.Close()
+        return success  
+
+    def setDeviceUserID(self, did):
+        """ Set the device ID (16 char) """
+        self.camera.Open()
+        success = self.camera.DeviceUserID.SetValue(did)
         self.camera.Close()
         return success  
 

@@ -44,6 +44,9 @@ class camera(object):
     def getBlackLevel(self):
         pass
 
+    def getDeviceUserID(self):
+        pass
+
     def getExposureTimeMicroseconds(self):
         pass
 
@@ -231,6 +234,9 @@ class camera(object):
         pass
 
     def setBlackLevel(self, level):
+        pass
+
+    def setDeviceUserID(self, did):
         pass
 
     def setExposureTimeMicroseconds(self, exposure_time):
