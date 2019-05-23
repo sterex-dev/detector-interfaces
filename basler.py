@@ -151,8 +151,6 @@ class Basler_2040_35gm(detector):
         }
         return overheads
 
-
-
     def getPacketSize(self):
         '''
             Get the size used for packets in bytes.
