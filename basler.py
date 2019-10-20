@@ -391,7 +391,8 @@ class Basler(camera):
                 grabResult.GrabSucceeded():
                     imgs.append(grabResult.Array)
                     grabResult.Release()
-                grab_attempts += 1
+                else:
+                    grab_attempts += 1
         return imgs
 
     def sendParameters(self, config):
